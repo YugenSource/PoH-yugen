@@ -1,8 +1,9 @@
 [package]
 name = "poh-yugen"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 digest = "0.10.7"
 sha2 = "0.10.8"
+hex = "0.4.3"

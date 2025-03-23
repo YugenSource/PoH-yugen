@@ -12,6 +12,8 @@
 // The `digest` crate provides a variety of hashing algorithms and utilities
 use digest::{Digest,Output,OutputSizeUser};
 use sha2::Sha256;
+
+
 pub mod extensions;
 
 pub trait Seedable {
@@ -271,15 +273,42 @@ impl<D: Digest + Clone> PoHUsage<D> {
     pub fn get_config(&self) -> &PoHConfig<D> {
         &self.config
     }
-    pub fn init(&mut self, seed: InitialSeed) {
-        // Initialize the PoH with the provided seed
-        // This would typically involve setting up the hasher and initial state
-        self.config.hasher.update(&seed.0);
+    pub fn init(&mut self) {
+        let initial_state = self.state[0].hash.clone();
+        let interval = self.config.tick_interval;
+        let max_entries = self.config.max_entries.unwrap_or(1000); // Default to 1000 if None
+
+        
+        let mut output_of_previous_tick: Vec<u8> = initial_state;
+        for _ in 0..max_entries {
+            for _ in 0..interval {
+                let mut hasher = self.config.hasher.clone();
+                hasher.update(output_of_previous_tick);
+                let output = hasher.finalize();
+                output_of_previous_tick = output.to_vec();
+            }
+            // Create a new PoH entry with the output of the previous tick
+            let new_entry = PoHEntry {
+                hash: output_of_previous_tick.clone(),
+                appended_data: None, // No appended data for now
+            };
+            self.state.push(new_entry);
+            // Print the output of the previous tick
+            println!("Output after {} ticks: {:?}", interval, hex::encode(output_of_previous_tick.clone()));
+        }
     }
+    pub fn get_state(&self) -> &Vec<PoHEntry> {
+        &self.state
+    }
+
 }
 
 
-
+impl PoHEntry {
+    pub fn to_hex_string(&self) -> String {
+        hex::encode(&self.hash)
+    }
+}
 
 // Appended Data implementation
 
@@ -297,7 +326,10 @@ impl AppendedData {
 fn run() {
     let config = PoHConfig::new(Sha256::new(), 32, 1000, Some(1000), true, true, TickEntryType::Data);
     let seed = InitialSeed([0; 64]);
-    let poh = PoHUsage::new(config, seed, Some(vec![1, 2, 3]), vec![]);
-
+    let mut poh = PoHUsage::new(config, seed, Some(vec![1, 2, 3]), vec![]);
     println!("{:?}", poh.state);
+    println!("Initializing PoH...");
+    // Initialize the PoH process
+    poh.init();
+
 }
