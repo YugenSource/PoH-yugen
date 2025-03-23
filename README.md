@@ -22,7 +22,7 @@ use poh_yugen::{PoHConfig,PoHUsage,InitialSeed,TickEntryType};
 use sha2::Sha256;
 
 fn main() {
-    let config = PoHConfig::new(Sha256::new(), 32, 10, Some(1000), true, true, TickEntryType::Data);
+    let config = PoHConfig::new(Sha256::new(), 32, 100, Some(1000), true, true, TickEntryType::Data);
     let seed = InitialSeed([0; 64]);
     let mut poh = PoHUsage::new(config, seed, Some(vec![1, 2, 3]), vec![]);
     println!("{:?}", poh.state);
