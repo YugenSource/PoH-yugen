@@ -1,5 +1,13 @@
 [package]
 name = "poh-yugen"
+authors = ["YugenSource", "Silene0259"]
+description = "A modern proof of history implementation in Rust"
+license = "Apache-2.0"
+repository = "https://github.com/YugenSource/PoH-yugen"
+homepage = "yugensource.github.io"
+keywords = ["proof of history", "poh", "rust", "cryptography"]
+categories = ["Cryptography", "Security"]
+readme = "README.md"
 version = "0.1.0"
 edition = "2024"
 
