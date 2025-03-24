@@ -8,8 +8,8 @@ homepage = "https://yugensource.github.io"
 keywords = ["consensus", "poh", "time", "cryptography", "proof-of-history"]
 categories = ["cryptography","date-and-time","algorithms"]
 readme = "README.md"
-version = "0.1.0"
-edition = "2024"
+version = "0.2.0"
+edition = "2021"
 
 [dependencies]
 digest = "0.10.7"
