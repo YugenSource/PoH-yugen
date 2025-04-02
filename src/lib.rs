@@ -15,6 +15,8 @@ use sha2::Sha256;
 
 
 pub mod extensions;
+pub mod prelude;
+pub mod timestamps;
 
 pub trait Seedable {
     /// Generates a new seed for the Proof of History (PoH) algorithm.
@@ -240,6 +242,12 @@ pub struct PoHUsage<D: Digest + Clone> {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct PoHEntry {
+    pub id: u64, // The ID of the PoH entry
+    pub timestamp: Option<u64>, // The timestamp of the PoH entry
+    
+    pub fingerprint: Option<String>, // The fingerprint of the PoH entry
+    
+    // Hash + Appended Data
     pub hash: Vec<u8>, // The hash of the PoH entry
     pub appended_data: Option<AppendedData>,
 }
@@ -263,7 +271,7 @@ impl<D: Digest + Clone> PoHUsage<D> {
         Self { 
             id: 0, 
             config: config, 
-            state: vec![PoHEntry { hash: output.to_vec(), appended_data: appended_data }], 
+            state: vec![PoHEntry { id: 0u64, fingerprint: None, timestamp: Some(timestamps::get_current_timestamp()), hash: output.to_vec(), appended_data: appended_data }], 
             extensions,
         }
     }
@@ -280,7 +288,10 @@ impl<D: Digest + Clone> PoHUsage<D> {
 
         
         let mut output_of_previous_tick: Vec<u8> = initial_state;
-        for _ in 0..max_entries {
+        for max_ent in 0..max_entries {
+            
+            
+            
             for _ in 0..interval {
                 let mut hasher = self.config.hasher.clone();
                 hasher.update(output_of_previous_tick);
@@ -289,6 +300,9 @@ impl<D: Digest + Clone> PoHUsage<D> {
             }
             // Create a new PoH entry with the output of the previous tick
             let new_entry = PoHEntry {
+                id: self.state[max_ent].id + 1u64,
+                timestamp: Some(timestamps::get_current_timestamp()),
+                fingerprint: None,
                 hash: output_of_previous_tick.clone(),
                 appended_data: None, // No appended data for now
             };
@@ -297,11 +311,54 @@ impl<D: Digest + Clone> PoHUsage<D> {
             println!("Output after {} ticks: {:?}", interval, hex::encode(output_of_previous_tick.clone()));
         }
     }
+    pub fn tick(&mut self, last_tick: PoHEntry, appended_data: Option<Vec<u8>>) {
+        // Implement the tick logic here
+        let interval = self.config.tick_interval;
+        let interval_minus_one = interval - 1;
+
+        let mut output_of_previous_tick: Vec<u8> = last_tick.hash.clone();
+        
+        for _ in 0..interval_minus_one {
+            let mut hasher = self.config.hasher.clone();
+            hasher.update(output_of_previous_tick);
+            let output = hasher.finalize();
+            output_of_previous_tick = output.to_vec();
+        }
+        let mut hasher = self.config.hasher.clone();
+        hasher.update(output_of_previous_tick.clone());
+        if appended_data.is_some() && self.config.allow_data_entries == true {
+            hasher.update(appended_data.clone().unwrap())
+        }
+        let output = hasher.finalize();
+        let final_tick = output.to_vec();
+
+        let mut added_data: Option<AppendedData> = None;
+
+        if appended_data.is_some() {
+            let data = appended_data.clone().unwrap();
+        }
+
+
+        // Create a new PoH entry with the output of the previous tick
+        let new_entry = PoHEntry {
+            id: last_tick.id + 1,
+            timestamp: Some(timestamps::get_current_timestamp()),
+            fingerprint: None,
+            hash: final_tick.clone(),
+            appended_data: added_data, // No appended data for now
+        };
+        println!("Output after {} ticks: {:?}", interval, hex::encode(output_of_previous_tick.clone()));
+
+    }
+    pub fn genesis(&mut self) {
+        // Implement the genesis logic here
+        self.tick(self.state[0].clone(), None);
+    }
     pub fn get_state(&self) -> &Vec<PoHEntry> {
         &self.state
     }
-
 }
+
 
 
 impl PoHEntry {
@@ -316,7 +373,6 @@ impl AppendedData {
     pub fn new(data: Vec<u8>) -> Self {
         Self { data }
     }
-
     pub fn get_data(&self) -> &[u8] {
         &self.data
     }
@@ -324,12 +380,27 @@ impl AppendedData {
 
 #[test]
 fn run() {
-    let config = PoHConfig::new(Sha256::new(), 32, 1000, Some(1000), true, true, TickEntryType::Data);
+    let config = PoHConfig::new(Sha256::new(), 32, 100, Some(10), true, true, TickEntryType::Data);
     let seed = InitialSeed([0; 64]);
     let mut poh = PoHUsage::new(config, seed, Some(vec![1, 2, 3]), vec![]);
     println!("{:?}", poh.state);
     println!("Initializing PoH...");
+    
     // Initialize the PoH process
     poh.init();
+    println!("{:?}", poh.state);
+    println!("LEN: {}", poh.state.len());
 
+}
+
+#[test]
+fn run2() {
+    let config = PoHConfig::new(Sha256::new(), 32, 100, Some(10), true, true, TickEntryType::Data);
+    let seed = InitialSeed([1; 64]);
+    let mut poh = PoHUsage::new(config, seed, Some(vec![1, 2, 3]), vec![]);
+    println!("{:?}", poh.state);
+    println!("Initializing PoH...");
+    
+    // Initialize the PoH process
+    poh.genesis();
 }
