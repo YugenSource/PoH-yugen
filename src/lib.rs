@@ -347,7 +347,6 @@ impl<D: Digest + Clone> PoHUsage<D> {
             hash: final_tick.clone(),
             appended_data: added_data, // No appended data for now
         };
-        println!("Output after {} ticks: {:?}", interval, hex::encode(output_of_previous_tick.clone()));
 
     }
     pub fn genesis(&mut self) {
@@ -375,6 +374,9 @@ impl AppendedData {
     }
     pub fn get_data(&self) -> &[u8] {
         &self.data
+    }
+    pub fn to_vec(&self) -> Vec<u8> {
+        self.data.clone()
     }
 }
 
