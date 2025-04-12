@@ -27,12 +27,12 @@ pub trait Seedable {
     fn set_seed(&mut self, seed: [u8; 64]);
 }
 
-pub trait EventData {
+pub trait EventData<D: Digest> {
     /// Generates a hash for the given event data.
     /// This function should be implemented to provide a secure hash
     /// of the event data, which can be used to verify the integrity
     /// of the PoH entries.
-    fn hash_event_data(data: &[u8]) -> [u8; 32];
+    fn hash_event_data(&self, hasher: D) -> [u8; 32];
 }
 
 
@@ -57,6 +57,16 @@ pub struct InitialSeed(pub [u8; 64]);
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct AppendedData {
     data: Vec<u8>,
+}
+
+impl<D: Digest> EventData<D> for AppendedData {
+    fn hash_event_data(&self, mut hasher: D) -> [u8; 32] {
+        hasher.update(&self.data);
+        let output = hasher.finalize();
+        let mut result = [0u8; 32];
+        result.copy_from_slice(&output[..32]);
+        result
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
